@@ -10,17 +10,17 @@ COPY . /app
 # Copy the Excel file into the container
 COPY bank.xlsx /app/bank.xlsx
 
+# Copy the env.py file into the container
+COPY env.py /app/env.py
+
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install PostgreSQL client
 RUN apt-get update && apt-get install -y postgresql-client
 
-# Loading data from bank.xlsx
-RUN python load_data.py
-
 # Make port 80 available to the world outside this container
 EXPOSE 80
 
 # Run app.py when the container launches
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["sh", "-c", "python wait_for_postgres.py && python load_data.py && uvicorn app:app --host 0.0.0.0 --port 80"]

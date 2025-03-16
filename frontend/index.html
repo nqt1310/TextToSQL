@@ -13,6 +13,7 @@
         <button type="submit">Submit</button>
     </form>
     <div id="results"></div>
+    <button id="downloadExcel" style="display:none;">Download Excel</button>
 
     <script>
         document.getElementById('queryForm').addEventListener('submit', async function(event) {
@@ -27,7 +28,29 @@
             });
             const data = await response.json();
             document.getElementById('results').innerHTML = JSON.stringify(data.results, null, 2);
+
+            // Show the download button
+            document.getElementById('downloadExcel').style.display = 'block';
+
+            // Add event listener to download button
+            document.getElementById('downloadExcel').addEventListener('click', function() {
+                downloadExcel(data.column_names, data.results);
+            });
         });
+
+        function downloadExcel(columnNames, results) {
+            const ws = XLSX.utils.json_to_sheet(results.map(row => {
+                let obj = {};
+                columnNames.forEach((col, index) => {
+                    obj[col] = row[index];
+                });
+                return obj;
+            }));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Results");
+            XLSX.writeFile(wb, "results.xlsx");
+        }
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
 </body>
 </html>

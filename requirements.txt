@@ -1,6 +1,7 @@
-openai
+openai==0.28
 psycopg2-binary
 fastapi
 uvicorn
 pandas
 openpyxl
+aiofiles
