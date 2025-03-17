@@ -1,0 +1,33 @@
+erDiagram
+    BANK_TRANSACTIONS {
+        VARCHAR(20) account_no PK
+        DATE date
+        VARCHAR(255) transaction_details
+        VARCHAR(20) chq_no
+        DATE value_date
+        NUMERIC withdrawal_amt
+        NUMERIC deposit_amt
+        NUMERIC balance_amt
+    }
+    
+    CUS_SEGMENT {
+        VARCHAR(200) account_no PK, FK
+        VARCHAR(200) segment
+    }
+    
+    CUS_ACCOUNT {
+        VARCHAR(200) cus
+        VARCHAR(22) account_no PK
+        VARCHAR(200) status
+        
+    }
+    
+    BANK_TRANSACTIONS ||--o{ CUS_SEGMENT : "account_no"
+    BANK_TRANSACTIONS ||--o{ CUS_ACCOUNT : "account_no"
+    CUS_SEGMENT ||--o{ CUS_ACCOUNT : "account_no"
+
+    note for CUS_ACCOUNT {
+    account_no can be either:
+    - Same as account_no from other tables
+    - String of 2 random chars + account_no
+    }   

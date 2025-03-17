@@ -12,6 +12,7 @@
         <input type="text" id="query" name="query" required>
         <button type="submit">Submit</button>
     </form>
+    <div id="sqlQuery"></div>
     <div id="results"></div>
     <button id="downloadExcel" style="display:none;">Download Excel</button>
 
@@ -27,7 +28,12 @@
                 body: JSON.stringify({ query })
             });
             const data = await response.json();
-            document.getElementById('results').innerHTML = JSON.stringify(data.results, null, 2);
+            
+            // Display the SQL query
+            document.getElementById('sqlQuery').innerHTML = `<h2>SQL Query:</h2><pre>${data.sql_query}</pre>`;
+            
+            // Display the results
+            document.getElementById('results').innerHTML = `<h2>Results:</h2><pre>${JSON.stringify(data.results, null, 2)}</pre>`;
 
             // Show the download button
             document.getElementById('downloadExcel').style.display = 'block';

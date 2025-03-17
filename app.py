@@ -39,19 +39,27 @@ class QueryRequest(BaseModel):
 
 def get_table_metadata(cursor):
     cursor.execute("""
-        SELECT table_name, column_name, data_type
-        FROM information_schema.columns
-        WHERE table_schema = 'public'
+        SELECT DATAELEMENT,
+        TABLE_NAME ,
+        COLUMN_NAME,
+        SCHEMA_NAME ,
+        DATATYPE ,
+        SOURCE_FIELD,
+        SOURCE_TABLE ,
+        SOURCE_SYSTEM ,
+        MAPPING_RULE,
+        OWNER 
+        FROM public.metadata_
     """)
     metadata = cursor.fetchall()
     return metadata
-
+with open("diagram.mmd", "r") as file:
+    mermaid_diagram = file.read()
 def text_to_sql(query_text, metadata):
-    metadata_str = "\n".join([f"Table: {table}, Column: {column}, Data Type: {data_type}" for table, column, data_type in metadata])
-    prompt = f"Retrieve the data from DB and write me an SQL to access it based on metadata:\n{metadata_str}\n\nQuery: {query_text}"
-    
+    metadata_str = "\n".join([f"Table: {table_name}, Column: {column_name}, Data Type: {datatype}, Souce system: {source_system}, Business DataElement: {dataelement}" for dataelement, table_name, column_name, schema_name, datatype, souce_field, source_table, source_system, mapping_rule, owner in metadata])
+    prompt = f"Retrieve the data from DB and write me an SQL to access it based on metadata:\n{metadata_str}\n\nQuery: {query_text}\n\nMermaid Diagram:\n```mermaid\n{mermaid_diagram}\n```"
     max_retries = 5
-    retry_delay = 1  # Start with a 1-second delay
+    retry_delay = 1 
 
     for attempt in range(max_retries):
         try:

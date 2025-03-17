@@ -19,6 +19,8 @@ df_meta = pd.read_excel('bank.xlsx',sheet_name='Meta')
 
 df_segment = pd.read_excel('bank.xlsx',sheet_name='Segment')
 
+df_account = pd.read_excel('bank.xlsx',sheet_name='CusAccount')
+
 # Create table if not exists
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS bank_transactions (
@@ -54,6 +56,15 @@ cursor.execute("""
         OWNER VARCHAR(200)
     );
 """)
+
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS cus_account (
+        cus varchar(200),
+        account_no VARCHAR(200),
+        status VARCHAR(200)
+    );
+""")
+
 
 
 # Insert data into the table
@@ -96,6 +107,16 @@ for index, row in df_segment.iterrows():
     """, (
         row['ACCOUNT NO'],
         row['SEGMENT']
+    ))
+
+for index, row in df_account.iterrows():
+    cursor.execute("""
+        INSERT INTO cus_account (CUS, ACCOUNT_NO,STATUS)
+        VALUES (%s,%s, %s)
+    """, (
+        row['CUS'],
+        row['ACCOUNT NO'],
+        row['STATUS']
     ))
 
 

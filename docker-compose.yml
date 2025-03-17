@@ -27,6 +27,7 @@ services:
       - ./frontend:/app/frontend
       - ./bank.xlsx:/app/bank.xlsx
       - ./env.py:/app/env.py
+      - ./diagram.mmd:/app/diagram.mmd
 
 volumes:
   postgres_data:
