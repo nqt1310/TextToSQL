@@ -35,23 +35,23 @@ cursor.execute("""
 
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS cus_segment (
-        account_no VARCHAR(20),
-        segment VARCHAR(20)
+        account_no VARCHAR(200),
+        segment VARCHAR(200)
     );
 """)
 
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS metadata_ (
-        DATAELEMENT VARCHAR(20),
-        TABLE_NAME VARCHAR(20),
-        COLUMN_NAME VARCHAR(20),
-        SCHEMA_NAME VARCHAR(20),
-        DATATYPE VARCHAR(20),
-        SOURCE_FIELD VARCHAR(20),
-        SOURCE_TABLE VARCHAR(20),
-        SOURCE_SYSTEM VARCHAR(20),
-        MAPPING_RULE VARCHAR(20),
-        OWNER VARCHAR(20)
+        DATAELEMENT VARCHAR(200),
+        TABLE_NAME VARCHAR(200),
+        COLUMN_NAME VARCHAR(200),
+        SCHEMA_NAME VARCHAR(200),
+        DATATYPE VARCHAR(200),
+        SOURCE_FIELD VARCHAR(200),
+        SOURCE_TABLE VARCHAR(200),
+        SOURCE_SYSTEM VARCHAR(200),
+        MAPPING_RULE VARCHAR(200),
+        OWNER VARCHAR(200)
     );
 """)
 
@@ -91,10 +91,10 @@ for index, row in df_meta.iterrows():
 
 for index, row in df_segment.iterrows():
     cursor.execute("""
-        INSERT INTO metadata_ (ACCOUNT_NO,SEGMENT)
+        INSERT INTO cus_segment (ACCOUNT_NO,SEGMENT)
         VALUES (%s, %s)
     """, (
-        row['ACCOUNT_NO'],
+        row['ACCOUNT NO'],
         row['SEGMENT']
     ))
 
