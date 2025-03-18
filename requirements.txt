@@ -5,3 +5,4 @@ uvicorn
 pandas
 openpyxl
 aiofiles
+pyhive[presto]

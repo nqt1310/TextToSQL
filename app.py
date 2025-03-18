@@ -6,10 +6,10 @@ import openai
 import psycopg2
 import os
 import re
-import time
 import env  # Import env.py
 from openai.error import RateLimitError
 import decimal
+import requests
 
 app = FastAPI()
 
@@ -39,59 +39,56 @@ class QueryRequest(BaseModel):
 
 def get_table_metadata(cursor):
     cursor.execute("""
-        SELECT DATAELEMENT,
-        TABLE_NAME ,
-        COLUMN_NAME,
-        SCHEMA_NAME ,
-        DATATYPE ,
-        SOURCE_FIELD,
-        SOURCE_TABLE ,
-        SOURCE_SYSTEM ,
-        MAPPING_RULE,
-        OWNER 
-        FROM public.metadata_
+    SELECT DATAELEMENT,
+           TABLE_NAME,
+           COLUMN_NAME,
+           SCHEMA_NAME,
+           DATATYPE,
+           SOURCE_FIELD,
+           SOURCE_TABLE,
+           SOURCE_SYSTEM,
+           MAPPING_RULE,
+           OWNER
+    FROM public.metadata_
     """)
     metadata = cursor.fetchall()
     return metadata
+
 with open("diagram.mmd", "r") as file:
     mermaid_diagram = file.read()
-def text_to_sql(query_text, metadata):
-    metadata_str = "\n".join([f"Table: {table_name}, Column: {column_name}, Data Type: {datatype}, Souce system: {source_system}, Business DataElement: {dataelement}" for dataelement, table_name, column_name, schema_name, datatype, souce_field, source_table, source_system, mapping_rule, owner in metadata])
-    prompt = f"Retrieve the data from DB and write me an SQL to access it based on metadata:\n{metadata_str}\n\nQuery: {query_text}\n\nMermaid Diagram:\n```mermaid\n{mermaid_diagram}\n```"
-    max_retries = 5
-    retry_delay = 1 
 
-    for attempt in range(max_retries):
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            response_text = response.choices[0].message['content'].strip()
-            # Extract SQL query using regular expressions
-            sql_query_match = re.search(r"```sql\n(.*?)\n```", response_text, re.DOTALL)
-            if sql_query_match:
-                sql_query = sql_query_match.group(1).strip()
-                return sql_query
-            else:
-                raise ValueError("No valid SQL query found in the response.")
-        except RateLimitError:
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-                retry_delay *= 2  # Exponential backoff
-            else:
-                raise
+def text_to_sql(query_text, metadata):
+    metadata_str = "\n".join([f"Table: {table_name}, Column: {column_name}, Data Type: {datatype}, Source system: {source_system}, Business DataElement: {dataelement}" for dataelement, table_name, column_name, schema_name, datatype, source_field, source_table, source_system, mapping_rule, owner in metadata])
+    prompt = f"Retrieve the data from DB and write me an SQL to access it based on metadata:\n{metadata_str}\n\nQuery: {query_text}\n\nMermaid Diagram:\n```mermaid\n{mermaid_diagram}\n```"
+    
+    # Send the query to OpenAI to generate SQL
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    response_text = response.choices[0].message['content'].strip()
+    sql_query_match = re.search(r"```sql\n(.*?)\n```", response_text, re.DOTALL)
+    if sql_query_match:
+        sql_query = sql_query_match.group(1).strip()
+    else:
+        raise ValueError("No valid SQL query found in the response.")
+    
+    # Print the generated SQL query for debugging
+    print(f"Generated SQL Query: {sql_query}")
+    
+    # Execute the query in Presto
+    cursor.execute(sql_query)
+    results = cursor.fetchall()
+    return sql_query, results
 
 @app.post("/query")
 def query(request: QueryRequest):
     query_text = request.query
     metadata = get_table_metadata(cursor)
-    sql_query = text_to_sql(query_text, metadata)
-    cursor.execute(sql_query)
-    results = cursor.fetchall()
+    sql_query, results = text_to_sql(query_text, metadata)
     
     # Get column names
     column_names = [desc[0] for desc in cursor.description]
