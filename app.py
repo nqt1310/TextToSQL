@@ -86,7 +86,7 @@ def text_to_sql(query_text, metadata):
         # Execute the query in Presto
         cursor.execute(sql_query)
         results = cursor.fetchall()
-        return sql_query, results
+        return sql_query.upper(), results
     
     except Exception as e:
         conn.rollback()
