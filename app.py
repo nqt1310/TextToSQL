@@ -58,31 +58,40 @@ with open("diagram.mmd", "r") as file:
     mermaid_diagram = file.read()
 
 def text_to_sql(query_text, metadata):
-    metadata_str = "\n".join([f"Table: {table_name}, Column: {column_name}, Data Type: {datatype}, Source system: {source_system}, Business DataElement: {dataelement}" for dataelement, table_name, column_name, schema_name, datatype, source_field, source_table, source_system, mapping_rule, owner in metadata])
-    prompt = f"Retrieve the data from DB and write me an SQL to access it based on metadata:\n{metadata_str}\n\nQuery: {query_text}\n\nMermaid Diagram:\n```mermaid\n{mermaid_diagram}\n```"
+    try:
+        metadata_str = "\n".join([f"Table: {table_name}, Column: {column_name}, Data Type: {datatype}, Source system: {source_system}, Business DataElement: {dataelement}" for dataelement, table_name, column_name, schema_name, datatype, source_field, source_table, source_system, mapping_rule, owner in metadata])
+        prompt = f"Retrieve the data from DB and write me an SQL to access it based on metadata:\n{metadata_str}\n\nQuery: {query_text}\n\nMermaid Diagram:\n```mermaid\n{mermaid_diagram}\n```"
+        
+        # Send the query to OpenAI to generate SQL
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        response_text = response.choices[0].message['content'].strip()
+        sql_query_match = re.search(r"```sql\n(.*?)\n```", response_text, re.DOTALL)
+        if sql_query_match:
+            sql_query = sql_query_match.group(1).strip()
+        else:
+            raise ValueError("No valid SQL query found in the response.")
+        
+        # Print the generated SQL query for debugging
+        print(f"Generated SQL Query: {sql_query}")
+        
+        # Rollback any previous transaction if needed
+        conn.rollback()
+        
+        # Execute the query in Presto
+        cursor.execute(sql_query)
+        results = cursor.fetchall()
+        return sql_query, results
     
-    # Send the query to OpenAI to generate SQL
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompt}
-        ]
-    )
-    response_text = response.choices[0].message['content'].strip()
-    sql_query_match = re.search(r"```sql\n(.*?)\n```", response_text, re.DOTALL)
-    if sql_query_match:
-        sql_query = sql_query_match.group(1).strip()
-    else:
-        raise ValueError("No valid SQL query found in the response.")
-    
-    # Print the generated SQL query for debugging
-    print(f"Generated SQL Query: {sql_query}")
-    
-    # Execute the query in Presto
-    cursor.execute(sql_query)
-    results = cursor.fetchall()
-    return sql_query, results
+    except Exception as e:
+        conn.rollback()
+        print(f"Error executing query: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/query")
 def query(request: QueryRequest):
